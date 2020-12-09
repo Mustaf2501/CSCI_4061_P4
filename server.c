@@ -253,7 +253,10 @@ void *dispatch(void *arg) {
   while (1) {
     fd = accept_connection();
     if (fd < 0) { return NULL; }
-    if (get_request(fd, mybuf) != 0) { continue; /*back to top of loop!*/ }
+    printf("HUH??-----------\n"); 
+    if (get_request(fd, mybuf) != 0){ 
+      continue;
+      printf("Inside dispatch, get_request failed\n"); /*back to top of loop!*/ }
 
     reqptr = (char *) malloc(strlen(mybuf) + 1);
     if (reqptr == NULL) {

@@ -14,6 +14,9 @@
 #include <string.h>
 #include <unistd.h>
 #include "util.h"
+#define MSGSIZE 128
+
+int sock; 
 
 /**********************************************
  * init
@@ -26,6 +29,56 @@
    - if init encounters any errors, it will call exit().
 ************************************************/
 void init(int port) {
+  int sockfd; // fd for main socket
+
+  // some things for binding step 
+  struct sockaddr_in my_addr; /* my address */
+  //struct sockaddr_in client_addr; /* client's address */ //not sure if used 
+  //int addr_size;
+  int enable = 1;
+
+  // CREATE SOCKET
+
+   /* --- Create the socket --- */
+  if ((sockfd = socket(PF_INET, SOCK_STREAM, 0)) == -1) {
+    perror("Can't create socket");
+    exit(1);
+  } 
+
+  // BIND SOCKET
+
+   /* --- Bind the socket, making its address reusable --- */
+  my_addr.sin_family = AF_INET;
+  my_addr.sin_port = htons(port);
+  my_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  /* Note the use of INADDR_ANY to get the OS to fill in the local
+     host address. You may not want to do this on a multi-home
+     host. */
+
+  /* Set the "re-use" option so we can shut down and restart the
+     server without waiting for the standard timeout. */
+  if (setsockopt(sockfd,SOL_SOCKET, SO_REUSEADDR, 
+      &enable, sizeof(int)) == -1) {
+    perror("Can't set socket option");
+    exit(1);
+  }
+
+  if (bind(sockfd, (struct sockaddr *)&my_addr,
+	           sizeof(my_addr)) == -1) {
+    perror("Could not bind");
+    exit(1);
+  }
+
+  // LISTEN
+
+    /* --- Set up the socket to listen for incoming connection requests --- */
+  if (listen(sockfd, 5) == -1) {
+    perror("Could not listen");
+    exit(1);
+  }
+
+  sock = sockfd; 
+
 }
 
 /**********************************************
@@ -36,6 +89,23 @@ void init(int port) {
    - if the return value is negative, the request should be ignored.
 ***********************************************/
 int accept_connection(void) {
+  int client_fd;
+  int addr_size;
+
+  struct sockaddr_in client_addr; /* client's address */
+  addr_size = sizeof(client_addr); 
+
+  if (( client_fd = accept(sock, (struct sockaddr *)&client_addr, &addr_size)) == -1){
+    perror("Failed to accept connection");
+   return -1;
+  }
+  
+  //fprintf(stderr, "server: client connection from %s\n", inet_ntoa(client_addr.sin_addr));
+
+  //close(client_fd);
+  
+  return client_fd;
+
 }
 
 /**********************************************
@@ -54,6 +124,20 @@ int accept_connection(void) {
      specific 'connection'.
 ************************************************/
 int get_request(int fd, char *filename) {
+
+  char msg[MSGSIZE];
+  int readsz = 0;
+
+  if ((readsz = read(fd, msg, 128)) >= 0) {
+    msg[readsz] = '\0';
+    fprintf(stderr, "Client sez %s", msg);
+  } else {
+    perror ("server read problem");
+    return -1;
+  }
+
+  //close(fd);
+  return 0;
 }
 
 /**********************************************
@@ -76,6 +160,7 @@ int get_request(int fd, char *filename) {
    - returns 0 on success, nonzero on failure.
 ************************************************/
 int return_result(int fd, char *content_type, char *buf, int numbytes) {
+  return 0;
 }
 
 /**********************************************
@@ -88,4 +173,5 @@ int return_result(int fd, char *content_type, char *buf, int numbytes) {
    - returns 0 on success, nonzero on failure.
 ************************************************/
 int return_error(int fd, char *buf) {
+  return 0;
 }
